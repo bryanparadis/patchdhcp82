@@ -3,6 +3,7 @@
 /*
 	status_dhcp_leases.php
 	Copyright (C) 2004-2009 Scott Ullrich
+	Copyright (C) 2014 Bryan Paradis - DHCP Option 82
 	All rights reserved.
 
 	originially part of m0n0wall (http://m0n0.ch/wall)
@@ -256,6 +257,17 @@ foreach($leases_content as $lease) {
 			case "uid":
 				$f = $f+1;
 				break;
+			//adding for bounty https://forum.pfsense.org/index.php/topic,71596.0.html
+			case "option":
+				switch($data[$f+1]){
+					case "agent.circuit-id":
+						$leases[$l]['circuit-id'] = converthtd($data[$f+2]);
+					break;
+					case "agent.remote-id":
+						$leases[$l]['remote-id'] = $data[$f+2];
+					break;
+				}
+			$f = $f+1;
 		}
 		$f++;
 	}
@@ -346,6 +358,8 @@ foreach ($pools as $data) {
     <td class="listhdrr"><a href="#"><?=gettext("End"); ?></a></td>
     <td class="listhdrr"><a href="#"><?=gettext("Online"); ?></a></td>
     <td class="listhdrr"><a href="#"><?=gettext("Lease Type"); ?></a></td>
+	<td class="listhdrr" title="DHCP Option 82 Circuit-ID is attached port"><a href="#"><?=gettext("Circuit ID"); ?></a></td>
+	<td class="listhdrr" title="DHCP Option 82 Remote-ID is remote MAC address"><a href="#" ><?=gettext("Remote ID"); ?></a></td>
 	</tr>
 <?php
 // Load MAC-Manufacturer table
@@ -410,6 +424,8 @@ foreach ($leases as $data) {
 				}
                 echo "<td class=\"listr\">{$fspans}{$data['online']}{$fspane}&nbsp;</td>\n";
                 echo "<td class=\"listr\">{$fspans}{$data['act']}{$fspane}&nbsp;</td>\n";
+				echo "<td class=\"listr\" title='DHCP Option 82 Circuit-ID is attached port'>{$fspans}{$data['circuit-id']}{$fspane}&nbsp;</td>\n";
+				echo "<td class=\"listr\" title='DHCP Option 82 Remote-ID is remote MAC address'>{$fspans}{$data['remote-id']}{$fspane}&nbsp;</td>\n";
 		
 		if ($data['type'] == "dynamic") {
 			echo "<td valign=\"middle\"><a href=\"services_dhcp_edit.php?if={$data['if']}&mac={$data['mac']}&hostname={$data['hostname']}\">";
@@ -451,3 +467,13 @@ foreach ($leases as $data) {
 <?php include("fend.inc"); ?>
 </body>
 </html>
+
+<?php
+//adding for bounty https://forum.pfsense.org/index.php/topic,71596.0.html
+function converthtd($hex)
+{
+	$exploded = explode(":", $hex);
+	for($i=0; $i<=3; $i++) { $exploded[$i] = hexdec($exploded[$i]); }
+	return implode("/", $exploded);
+}
+?>
